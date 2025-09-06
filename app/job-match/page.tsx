@@ -15,10 +15,24 @@ import { Separator } from "@/components/ui/separator"
 import { Upload, FileText, Target, CheckCircle, AlertCircle, TrendingUp, Edit3 } from "lucide-react"
 import type { JobMatchRequest, JobMatchResult } from "@/types/job-match"
 import { matchJobDescription } from "@/lib/job-matcher"
-import { useResume } from "@/components/resume/resume-provider"
 
 export default function JobMatchPage() {
-  const { resumes } = useResume()
+  // Mock resumes data instead of using ResumeProvider
+  const resumes = [
+    { 
+      id: "1", 
+      name: "Software Engineer Resume", 
+      content: "Mock resume content",
+      personal: { fullName: "John Doe" }
+    },
+    { 
+      id: "2", 
+      name: "Full Stack Developer Resume", 
+      content: "Mock resume content",
+      personal: { fullName: "Jane Smith" }
+    }
+  ]
+  
   const [selectedResumeId, setSelectedResumeId] = useState<string>("")
   const [jobDescription, setJobDescription] = useState("")
   const [jobTitle, setJobTitle] = useState("")

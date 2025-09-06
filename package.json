@@ -1,6 +1,7 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "hireready",
+  "version": "1.0.0",
+  "description": "Global job portal with resume building, ATS scoring, and job matching",
   "private": true,
   "scripts": {
     "build": "next build",
