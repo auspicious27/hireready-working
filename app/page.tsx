@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { FileText, Menu, X } from "lucide-react"
 import Link from "next/link"
-import { LanguageSelector } from "@/components/i18n/language-selector"
+import { EnhancedLanguageSelector } from "@/components/i18n/language-modal"
 import { HomePageContent } from "@/components/home/home-page-content"
 import { useState } from "react"
 
@@ -45,7 +45,7 @@ export default function HomePage() {
           </nav>
           
           <div className="flex items-center gap-3">
-            <LanguageSelector />
+            <EnhancedLanguageSelector />
             <Button variant="ghost" asChild className="hidden sm:flex hover:bg-primary/10 transition-colors">
               <Link href="/login">Sign In</Link>
             </Button>
