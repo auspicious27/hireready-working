@@ -66,17 +66,24 @@ export function ATSResults({ result }: ATSResultsProps) {
         </CardHeader>
         <CardContent>
           <div className="flex justify-center gap-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Download className="w-4 h-4 mr-2" />
               Download Report
             </Button>
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                const reportText = `ATS Score Report\nOverall Score: ${result.overall}%\nVerdict: ${result.verdict}\n\nBreakdown:\n- Keyword Match: ${result.breakdown.keywordMatch}%\n- Skills Coverage: ${result.breakdown.skillsCoverage}%\n- Experience Relevance: ${result.breakdown.experienceRelevance}%\n- Formatting: ${result.breakdown.formatting}%\n\nRecommendations:\n${result.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}`
+                navigator.clipboard.writeText(reportText)
+              }}
+            >
               <Share className="w-4 h-4 mr-2" />
-              Share Results
+              Copy Results
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              Rescan
+              New Scan
             </Button>
           </div>
         </CardContent>

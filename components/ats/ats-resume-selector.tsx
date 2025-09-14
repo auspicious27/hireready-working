@@ -21,20 +21,35 @@ export function ATSResumeSelector({ onScanComplete, loading, setLoading }: ATSRe
   useEffect(() => {
     // Load saved resumes from localStorage - in real app, would fetch from API
     const savedResumes: ResumeData[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key?.startsWith("resume-")) {
-        try {
-          const resume = JSON.parse(localStorage.getItem(key) || "{}")
-          if (resume.id) {
-            savedResumes.push(resume)
+    
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key?.startsWith("resume-")) {
+          try {
+            const resumeData = localStorage.getItem(key)
+            if (resumeData) {
+              const resume = JSON.parse(resumeData)
+              // Validate resume structure
+              if (resume.id && resume.personal && resume.createdAt && resume.updatedAt) {
+                savedResumes.push(resume)
+              }
+            }
+          } catch (parseError) {
+            console.warn(`Error parsing resume ${key}:`, parseError)
+            // Remove corrupted data
+            localStorage.removeItem(key)
           }
-        } catch (error) {
-          console.error("Error parsing resume:", error)
         }
       }
+      
+      // Sort by most recently updated
+      savedResumes.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      setResumes(savedResumes)
+    } catch (error) {
+      console.error("Error loading resumes from localStorage:", error)
+      setResumes([])
     }
-    setResumes(savedResumes.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))
   }, [])
 
   const handleScan = async () => {
@@ -141,8 +156,17 @@ export function ATSResumeSelector({ onScanComplete, loading, setLoading }: ATSRe
 
       <div className="flex justify-center">
         <Button onClick={handleScan} disabled={!selectedResumeId || loading} size="lg" className="px-8">
-          <Target className="w-4 h-4 mr-2" />
-          {loading ? "Analyzing Resume..." : "Analyze ATS Score"}
+          {loading ? (
+            <>
+              <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Analyzing Resume...
+            </>
+          ) : (
+            <>
+              <Target className="w-4 h-4 mr-2" />
+              Analyze ATS Score
+            </>
+          )}
         </Button>
       </div>
     </div>

@@ -54,7 +54,34 @@ export function ATSUploadForm({ onScanComplete, loading, setLoading }: ATSUpload
     setLoading(true)
 
     try {
-      // Mock file processing - in real app, would extract text from PDF/DOCX
+      // Extract text from uploaded file
+      let resumeText = ""
+      
+      if (selectedFile.type === "application/pdf") {
+        // For PDF files, we'll use a mock extraction
+        // In a real app, you'd use a library like pdf-parse or pdf2pic
+        resumeText = await extractTextFromPDF(selectedFile)
+      } else if (selectedFile.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
+                 selectedFile.name.endsWith(".docx")) {
+        // For DOCX files, we'll use a mock extraction
+        // In a real app, you'd use a library like mammoth
+        resumeText = await extractTextFromDOCX(selectedFile)
+      } else if (selectedFile.name.endsWith(".doc")) {
+        // For DOC files, we'll use a mock extraction
+        resumeText = await extractTextFromDOC(selectedFile)
+      } else {
+        // For text files
+        resumeText = await selectedFile.text()
+      }
+
+      // Simulate processing delay
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      const result = ATSScorer.scoreResumeText(resumeText, selectedFile.name)
+      onScanComplete(result)
+    } catch (error) {
+      console.error("Error processing file:", error)
+      // Fallback to mock data if extraction fails
       const mockResumeText = `
         John Doe Software Engineer
         john.doe@email.com (555) 123-4567
@@ -83,17 +110,109 @@ export function ATSUploadForm({ onScanComplete, loading, setLoading }: ATSUpload
         Certifications:
         AWS Certified Solutions Architect
       `
-
-      // Simulate processing delay
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
+      
       const result = ATSScorer.scoreResumeText(mockResumeText, selectedFile.name)
       onScanComplete(result)
-    } catch (error) {
-      console.error("Error processing file:", error)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Mock text extraction functions - in real app, use proper libraries
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    // Mock PDF text extraction
+    return `
+      John Doe Software Engineer
+      john.doe@email.com (555) 123-4567
+      
+      Professional Summary:
+      Experienced software engineer with 5+ years developing web applications using JavaScript, React, and Node.js.
+      Led team of 4 developers and increased productivity by 25%.
+      
+      Skills:
+      JavaScript, React, Node.js, Python, SQL, AWS, Docker, Git, Problem Solving, Leadership, Communication
+      
+      Experience:
+      Senior Software Engineer at Tech Company (2020-Present)
+      - Developed and maintained React applications serving 100k+ users
+      - Implemented CI/CD pipelines reducing deployment time by 50%
+      - Led code reviews and mentored junior developers
+      
+      Software Engineer at StartupCo (2018-2020)
+      - Built REST APIs using Node.js and Express
+      - Optimized database queries improving performance by 30%
+      
+      Education:
+      Bachelor of Science in Computer Science
+      University of Technology (2014-2018)
+      
+      Certifications:
+      AWS Certified Solutions Architect
+    `
+  }
+
+  const extractTextFromDOCX = async (file: File): Promise<string> => {
+    // Mock DOCX text extraction
+    return `
+      John Doe Software Engineer
+      john.doe@email.com (555) 123-4567
+      
+      Professional Summary:
+      Experienced software engineer with 5+ years developing web applications using JavaScript, React, and Node.js.
+      Led team of 4 developers and increased productivity by 25%.
+      
+      Skills:
+      JavaScript, React, Node.js, Python, SQL, AWS, Docker, Git, Problem Solving, Leadership, Communication
+      
+      Experience:
+      Senior Software Engineer at Tech Company (2020-Present)
+      - Developed and maintained React applications serving 100k+ users
+      - Implemented CI/CD pipelines reducing deployment time by 50%
+      - Led code reviews and mentored junior developers
+      
+      Software Engineer at StartupCo (2018-2020)
+      - Built REST APIs using Node.js and Express
+      - Optimized database queries improving performance by 30%
+      
+      Education:
+      Bachelor of Science in Computer Science
+      University of Technology (2014-2018)
+      
+      Certifications:
+      AWS Certified Solutions Architect
+    `
+  }
+
+  const extractTextFromDOC = async (file: File): Promise<string> => {
+    // Mock DOC text extraction
+    return `
+      John Doe Software Engineer
+      john.doe@email.com (555) 123-4567
+      
+      Professional Summary:
+      Experienced software engineer with 5+ years developing web applications using JavaScript, React, and Node.js.
+      Led team of 4 developers and increased productivity by 25%.
+      
+      Skills:
+      JavaScript, React, Node.js, Python, SQL, AWS, Docker, Git, Problem Solving, Leadership, Communication
+      
+      Experience:
+      Senior Software Engineer at Tech Company (2020-Present)
+      - Developed and maintained React applications serving 100k+ users
+      - Implemented CI/CD pipelines reducing deployment time by 50%
+      - Led code reviews and mentored junior developers
+      
+      Software Engineer at StartupCo (2018-2020)
+      - Built REST APIs using Node.js and Express
+      - Optimized database queries improving performance by 30%
+      
+      Education:
+      Bachelor of Science in Computer Science
+      University of Technology (2014-2018)
+      
+      Certifications:
+      AWS Certified Solutions Architect
+    `
   }
 
   const removeFile = () => {
@@ -152,7 +271,14 @@ export function ATSUploadForm({ onScanComplete, loading, setLoading }: ATSUpload
 
       <div className="flex justify-center">
         <Button onClick={handleScan} disabled={!selectedFile || loading} size="lg" className="px-8">
-          {loading ? "Analyzing Resume..." : "Analyze ATS Score"}
+          {loading ? (
+            <>
+              <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Analyzing Resume...
+            </>
+          ) : (
+            "Analyze ATS Score"
+          )}
         </Button>
       </div>
     </div>

@@ -131,13 +131,21 @@ export class ATSScorer {
 
   static calculateKeywordMatch(resumeText: string): { score: number; found: string[]; missing: string[] } {
     const allKeywords = [...HARD_SKILLS, ...TOOLS_PLATFORMS].map((k) => k.toLowerCase())
-    const found = allKeywords.filter((keyword) => resumeText.includes(keyword.toLowerCase()))
-    const missing = allKeywords.filter((keyword) => !resumeText.includes(keyword.toLowerCase()))
+    const resumeTextLower = resumeText.toLowerCase()
+    
+    const found = allKeywords.filter((keyword) => resumeTextLower.includes(keyword.toLowerCase()))
+    const missing = allKeywords.filter((keyword) => !resumeTextLower.includes(keyword.toLowerCase()))
 
-    // Score based on industry-relevant keywords found
-    const score = Math.min(100, (found.length / Math.max(allKeywords.length * 0.3, 1)) * 100)
+    // More realistic scoring based on industry standards
+    // ATS systems typically look for 60-80% keyword match
+    const keywordDensity = found.length / Math.max(allKeywords.length * 0.4, 1) // Expect 40% of keywords
+    const score = Math.min(100, Math.round(keywordDensity * 100))
 
-    return { score: Math.round(score), found, missing: missing.slice(0, 10) }
+    return { 
+      score: Math.max(0, score), 
+      found: found.slice(0, 20), // Limit to top 20 found keywords
+      missing: missing.slice(0, 10) // Show top 10 missing keywords
+    }
   }
 
   static calculateSkillsCoverage(resume: ResumeData): { score: number; missing: string[] } {
@@ -148,35 +156,66 @@ export class ATSScorer {
       resumeSkills.some((resumeSkill) => resumeSkill.includes(skill) || skill.includes(resumeSkill)),
     )
 
-    const missingSkills = SOFT_SKILLS.filter(
+    const missingSoftSkills = SOFT_SKILLS.filter(
       (skill) => !resumeSkills.some((resumeSkill) => resumeSkill.toLowerCase().includes(skill.toLowerCase())),
     ).slice(0, 5)
 
-    const score = Math.min(100, (foundSkills.length / Math.max(allSkills.length * 0.2, 1)) * 100)
+    // More balanced scoring - expect 30% of total skills
+    const skillDensity = foundSkills.length / Math.max(allSkills.length * 0.3, 1)
+    const score = Math.min(100, Math.round(skillDensity * 100))
 
-    return { score: Math.round(score), missing: missingSkills }
+    return { score: Math.max(0, score), missing: missingSoftSkills }
   }
 
   static calculateExperienceRelevance(resume: ResumeData): number {
     let score = 0
 
     // Base score for having experience
-    if (resume.experience.length > 0) score += 30
+    if (resume.experience.length > 0) score += 25
 
-    // Bonus for multiple positions
-    if (resume.experience.length >= 2) score += 20
+    // Bonus for multiple positions (shows career progression)
+    if (resume.experience.length >= 2) score += 15
     if (resume.experience.length >= 3) score += 10
+    if (resume.experience.length >= 4) score += 5
 
-    // Check for quantified achievements
-    const hasQuantifiedBullets = resume.experience.some((exp) => exp.bullets.some((bullet) => /\d+/.test(bullet)))
-    if (hasQuantifiedBullets) score += 25
+    // Check for quantified achievements (numbers, percentages, metrics)
+    const quantifiedPatterns = [
+      /\d+%/, // percentages
+      /\d+\s*(years?|months?)/, // time periods
+      /\d+\s*(k\b|million|billion)/, // large numbers
+      /\d+\s*(users?|customers?|clients?)/, // user counts
+      /\$\d+/, // dollar amounts
+      /\d+x/, // multipliers
+    ]
+    
+    const hasQuantifiedBullets = resume.experience.some((exp) => 
+      exp.bullets.some((bullet) => 
+        quantifiedPatterns.some(pattern => pattern.test(bullet))
+      )
+    )
+    if (hasQuantifiedBullets) score += 20
 
-    // Check for action verbs
-    const actionVerbs = ["led", "managed", "developed", "implemented", "created", "improved", "increased", "reduced"]
+    // Check for strong action verbs
+    const actionVerbs = [
+      "led", "managed", "developed", "implemented", "created", "improved", 
+      "increased", "reduced", "optimized", "designed", "built", "launched",
+      "achieved", "delivered", "executed", "coordinated", "supervised"
+    ]
     const hasActionVerbs = resume.experience.some((exp) =>
-      exp.bullets.some((bullet) => actionVerbs.some((verb) => bullet.toLowerCase().includes(verb))),
+      exp.bullets.some((bullet) => 
+        actionVerbs.some((verb) => bullet.toLowerCase().includes(verb))
+      ),
     )
     if (hasActionVerbs) score += 15
+
+    // Check for leadership indicators
+    const leadershipKeywords = ["team", "lead", "manage", "supervise", "mentor", "train"]
+    const hasLeadership = resume.experience.some((exp) =>
+      exp.bullets.some((bullet) => 
+        leadershipKeywords.some((keyword) => bullet.toLowerCase().includes(keyword))
+      ),
+    )
+    if (hasLeadership) score += 10
 
     return Math.min(100, score)
   }
@@ -280,45 +319,71 @@ export class ATSScorer {
   }
 
   static scoreResumeText(resumeText: string, fileName?: string): ATSScanResult {
-    // Mock scoring for uploaded text - simplified version
+    // Enhanced text analysis for uploaded files
     const keywordAnalysis = this.calculateKeywordMatch(resumeText)
-
+    
     // Basic text analysis
     const wordCount = resumeText.split(/\s+/).length
     const hasEmail = /@/.test(resumeText)
     const hasPhone = /\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/.test(resumeText)
-    const hasQuantifiedAchievements = /\d+%|\d+\s*(years?|months?|k\b|million|billion)/.test(resumeText)
+    
+    // Enhanced quantified achievements detection
+    const quantifiedPatterns = [
+      /\d+%/, // percentages
+      /\d+\s*(years?|months?)/, // time periods
+      /\d+\s*(k\b|million|billion)/, // large numbers
+      /\d+\s*(users?|customers?|clients?)/, // user counts
+      /\$\d+/, // dollar amounts
+      /\d+x/, // multipliers
+    ]
+    const hasQuantifiedAchievements = quantifiedPatterns.some(pattern => pattern.test(resumeText))
 
-    let formattingScore = 70
-    if (hasEmail) formattingScore += 10
+    // Calculate formatting score
+    let formattingScore = 60 // Base score
+    if (hasEmail) formattingScore += 15
     if (hasPhone) formattingScore += 10
     if (wordCount > 200) formattingScore += 10
+    if (wordCount > 400) formattingScore += 5
 
-    let experienceScore = 40
-    if (hasQuantifiedAchievements) experienceScore += 30
+    // Calculate experience score
+    let experienceScore = 30 // Base score
+    if (hasQuantifiedAchievements) experienceScore += 25
     if (wordCount > 400) experienceScore += 20
-    if (/\b(led|managed|developed|created|improved)\b/i.test(resumeText)) experienceScore += 10
+    if (wordCount > 600) experienceScore += 10
+    
+    // Check for action verbs
+    const actionVerbs = [
+      "led", "managed", "developed", "implemented", "created", "improved", 
+      "increased", "reduced", "optimized", "designed", "built", "launched"
+    ]
+    const hasActionVerbs = actionVerbs.some(verb => new RegExp(`\\b${verb}\\b`, 'i').test(resumeText))
+    if (hasActionVerbs) experienceScore += 15
+
+    // Calculate skills coverage based on text analysis
+    const skillsKeywords = [...HARD_SKILLS, ...SOFT_SKILLS].map(s => s.toLowerCase())
+    const foundSkills = skillsKeywords.filter(skill => resumeText.toLowerCase().includes(skill))
+    const skillsScore = Math.min(100, Math.round((foundSkills.length / Math.max(skillsKeywords.length * 0.3, 1)) * 100))
 
     const overall = Math.round(
       keywordAnalysis.score * 0.35 +
-        60 * 0.3 + // Default skills score
-        Math.min(100, experienceScore) * 0.25 +
-        Math.min(100, formattingScore) * 0.1,
+      skillsScore * 0.3 +
+      Math.min(100, experienceScore) * 0.25 +
+      Math.min(100, formattingScore) * 0.1,
     )
 
     const score: ATSScore = {
       overall,
       breakdown: {
         keywordMatch: keywordAnalysis.score,
-        skillsCoverage: 60,
+        skillsCoverage: skillsScore,
         experienceRelevance: Math.min(100, experienceScore),
         formatting: Math.min(100, formattingScore),
       },
       missing: {
         hardSkills: keywordAnalysis.missing.slice(0, 5),
-        softSkills: SOFT_SKILLS.slice(0, 5),
-        tools: TOOLS_PLATFORMS.slice(0, 5),
-        certifications: CERTIFICATIONS.slice(0, 3),
+        softSkills: SOFT_SKILLS.filter(skill => !resumeText.toLowerCase().includes(skill.toLowerCase())).slice(0, 5),
+        tools: TOOLS_PLATFORMS.filter(tool => !resumeText.toLowerCase().includes(tool.toLowerCase())).slice(0, 5),
+        certifications: CERTIFICATIONS.filter(cert => !resumeText.toLowerCase().includes(cert.toLowerCase())).slice(0, 3),
       },
       recommendations: [],
       scanId: `scan-${Date.now()}`,
